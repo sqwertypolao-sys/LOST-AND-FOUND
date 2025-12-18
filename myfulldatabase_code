@@ -1,0 +1,183 @@
+-- ================================
+-- DATABASE
+-- ================================
+CREATE DATABASE IF NOT EXISTS lfis_db;
+USE lfis_db;
+
+-- ================================
+-- USERS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    fullname VARCHAR(100) NOT NULL,
+    email VARCHAR(100),
+    role ENUM('admin','staff') DEFAULT 'staff',
+    profile_pic VARCHAR(255),
+    last_login DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO users (username, password, fullname, email, role) VALUES
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin@lfis.com', 'admin'),
+('staff1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Staff User', 'staff@lfis.com', 'staff');
+
+-- ================================
+-- LOCATIONS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS locations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    building VARCHAR(100),
+    floor VARCHAR(50),
+    status ENUM('active','inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO locations (name, description, building, floor) VALUES
+('Library Main Entrance', 'Main entrance area of the library', 'Library Building', 'Ground Floor'),
+('CETC Building 2nd Floor', 'Computer Engineering and Technology Center', 'CETC Building', '2nd Floor'),
+('University Cafeteria', 'Main student dining area', 'Student Center', 'Ground Floor'),
+('Computer Lab Room 203', 'Computer laboratory room 203', 'CETC Building', '2nd Floor'),
+('University Parking Lot', 'Main campus parking area', 'Parking Complex', 'Outdoor');
+
+-- ================================
+-- CATEGORIES TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    status ENUM('active','inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO categories (name, description) VALUES
+('Electronics', 'Mobile phones, laptops, gadgets'),
+('Documents', 'IDs, passports, certificates'),
+('Accessories', 'Bags, wallets, keys'),
+('Clothing', 'Shirts, pants, jackets'),
+('Books', 'Textbooks, notebooks'),
+('Others', 'Miscellaneous items');
+
+-- ================================
+-- ITEMS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    category_id INT,
+    item_type ENUM('lost','found') DEFAULT 'found',
+    date_found DATE NOT NULL,
+    date_lost DATE,
+    location_id INT,
+    exact_location VARCHAR(500),
+    status ENUM('pending','published','claimed') DEFAULT 'pending',
+    image_url VARCHAR(255),
+    finder_name VARCHAR(100),
+    finder_contact VARCHAR(100),
+    finder_email VARCHAR(100),
+    finder_phone VARCHAR(20),
+    claimant_name VARCHAR(100),
+    claimant_contact VARCHAR(100),
+    claim_date DATE,
+    user_id INT,
+    admin_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    FOREIGN KEY (location_id) REFERENCES locations(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Sample Items
+INSERT IGNORE INTO items (title, description, category_id, item_type, date_found, location_id, exact_location, status, finder_name, finder_contact, finder_email, user_id) VALUES
+('Black Samsung Phone', 'Found near library entrance. Black Samsung Galaxy S21 with blue case.', 1, 'found', '2024-01-15', 1, 'Near the book return counter', 'published', 'John Doe', '09123456789', 'john.doe@email.com', 1),
+('Student ID Card', 'Juan Dela Cruz, ID# 2021-00123, Computer Engineering', 2, 'found', '2024-01-14', 2, 'On the bench near room 205', 'published', 'Jane Smith', '09234567890', 'jane.smith@email.com', 2);
+
+-- ================================
+-- MESSAGES TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fullname VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    contact_no VARCHAR(20),
+    subject VARCHAR(200),
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    replied BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ================================
+-- PAGES TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS pages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    page_name VARCHAR(50) UNIQUE NOT NULL,
+    title VARCHAR(200),
+    content LONGTEXT,
+    meta_description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Default Pages
+INSERT IGNORE INTO pages (page_name, title, content) VALUES
+('home', 'Welcome to Lost and Found Information System', '<h2>Find Lost Items Easily</h2><p>Our system helps reunite lost items with their owners quickly.</p>'),
+('about', 'About Us', '<h2>About Lost and Found Information System</h2><p>We provide an online platform for reporting and finding lost items.</p>'),
+('contact', 'Contact Us', '<h2>Get In Touch</h2><p>Have questions or concerns? Reach out to us.</p>');
+
+-- ================================
+-- SYSTEM SETTINGS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS system_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT,
+    setting_type ENUM('text', 'textarea', 'email', 'phone', 'url') DEFAULT 'text',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO system_settings (setting_key, setting_value, setting_type) VALUES
+('system_name', 'Lost and Found Information System', 'text'),
+('system_email', 'lfis@university.edu', 'email'),
+('contact_phone', '903-436-9357', 'phone');
+
+-- ================================
+-- CLAIMS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS claims (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    user_id INT,
+    fullname VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    description TEXT NOT NULL,
+    proof_of_ownership TEXT,
+    status ENUM('pending','approved','rejected') DEFAULT 'pending',
+    processed_by INT,
+    processed_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (processed_by) REFERENCES users(id)
+);
+
+-- ================================
+-- ACTIVITY LOGS TABLE
+-- ================================
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(100) NOT NULL,
+    description TEXT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
